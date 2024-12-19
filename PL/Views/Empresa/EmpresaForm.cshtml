@@ -1,0 +1,158 @@
+﻿@model ML.Empresa
+@{
+    ViewData["Title"] = "CandidatoVisualizacion";
+}
+
+<h1>Agregar Empresa</h1>
+
+<style>
+    #map {
+        height: 400px;
+        width: 100%;
+    }
+</style>
+@using (Html.BeginForm("EmpresaAdd", "Empresa", FormMethod.Post, new { enctype = "multipart/form-data", onsubmit = " return ComprobarFormato()" }))
+{
+<div class="container">
+    <div class="d-flex justify-content-center">
+        <div class="col-12">
+            <div class="row">
+                <div class="col-12">
+                    <div class="row">
+                        @Html.HiddenFor(model => model.IdEmpresa, new {@id = "IdEmpresa"})
+                        <div class="col-12 mt-4" id="iptUrl">
+                            @Html.LabelFor(model => model.Nombre, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.Nombre, new { @id = "txtNombre", @class = "form-control mx-auto parpadeo", placeholder = "Inserta el nombre de la empresa", @onkeypress = "validarLongitud(event, this, 'errorUrlLongitud', '100');" })
+                            <div class="text-danger" id="errorNombreLongitud" style="display: none; font-size: 0.9em;">El nombre no puede exceder los 100 caracteres</div>
+                            <div class="text-danger" id="errorNombreVacio" style="display: none; font-size: 0.9em;">El nombre no puede encontrarse vacio</div>
+                        </div>
+                        <div class="col-12 mt-4">
+                            @Html.LabelFor(model => model.Latitud, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.Latitud, new { @id = "txtLatitud", @class = "form-control mx-auto parpadeo", @readonly = "readonly" })
+                        </div>
+                        <div class="col-12 mt-4">
+                            @Html.LabelFor(model => model.Longitud, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.Longitud, new { @id = "txtLongitud", @class = "form-control mx-auto parpadeo", @readonly = "readonly" })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 mt-4"id="map"></div>
+                <div class="col-6 text-center mt-4">
+                    <button id="BtnEnviarRegistro" type="submit" class="btn btn-success" style="width: 80%;">Guardar</button>
+                </div>
+                <div class="col-6 text-center mt-4">
+                     @Html.ActionLink("Cancelar", "EmpresaForm", "Empresa", null, new { @class = "btn btn-danger", @style = "width: 80%;" })
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script>
+    (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })
+        ({ key: "AIzaSyCSKBDdPPlfca_zTwyxKiicRQn1qfgRjLw", v: "weekly" });
+</script>
+
+<script>
+    let map;
+    let markers = [];
+    var IdEmpresa = $('#IdEmpresa').val();
+    var latitud = $('#txtLatitud').val();
+    var longitud = $('#txtLongitud').val();
+    async function initMap() {
+        if (IdEmpresa == null || IdEmpresa == 0) {
+            var position = { lat: 19.430398338130196, lng: -99.16165246336072 };
+        } else {
+            var position = { lat: parseFloat(latitud), lng: parseFloat(longitud) };
+        }
+        
+        const { Map } = await google.maps.importLibrary("maps");
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+        map = new Map(document.getElementById("map"), {
+            zoom: 16,
+            center: position,
+            mapId: "DEMO_MAP_ID",
+        });
+
+        const marker = new AdvancedMarkerElement({
+            map: map,
+            position: position,
+            title: "Uluru",
+        });
+        markers.push(marker)
+
+        google.maps.event.addListener(map, "click", (event) => {
+            var latLng = event.latLng.toJSON();
+            $('#txtLatitud').val(latLng.lat)
+            $('#txtLongitud').val(latLng.lng)
+            setMapOnAll(markers);
+            addMarker(event.latLng, map);
+
+
+        });
+
+        function addMarker(location, map) {
+            const marker = new AdvancedMarkerElement({
+                map: map,
+                position: location
+            });
+            markers.push(marker)
+        }
+        function setMapOnAll(markers) {
+            for (let i = 0; i < markers.length; i++) {
+                markers[i].map = null;
+
+            }
+        }
+    }
+
+    initMap();
+
+    function validarLongitud(event, input, div, longitud) {
+        var error = document.getElementById(div)
+        if (input.value.length >= longitud) {
+            event.preventDefault();
+            error.style.display = 'block'
+            input.style.backgroundColor = 'lightcoral';
+
+
+            setTimeout(() => {
+                input.style.backgroundColor = '';
+            }, 500);
+
+            setTimeout(() => {
+                error.style.display = 'none';
+            }, 5000);
+
+        }
+    }
+
+    function ComprobarFormato() {
+        var inputs = [];
+        inputs.push($("#txtNombre").get(0));
+        var validacion = true;
+        for (i = 0; i < inputs.length; i++) {
+            if (inputs[i].classList.contains('invalido')) {
+                validacion = false;
+            }
+            if (inputs[i].value == '') {
+                var error = document.getElementById('error' + inputs[i].name + 'Vacio')
+                error.style.display = 'block'
+                inputs[i].classList.add('invalido');
+                inputs[i].classList.remove('valido');
+                validacion = false;
+            }
+        }
+        if (validacion) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+</script>

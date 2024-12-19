@@ -1,0 +1,128 @@
+﻿@model ML.Empresa
+@{
+    ViewData["Title"] = "Empresas";
+}
+<style>
+    #map {
+        height: 400px;
+        width: 100%; 
+    }
+</style>
+
+<h1>Empresas</h1>
+
+<div class="container">
+    <div class="d-flex justify-content-center">
+        <div class="col-12">
+            <div class="row">
+                <div class="col-12 mt-4">
+                    <button type="button" class="btn btn-success col-6 my-3" style="width: 20%;" onclick="location.href='/Empresa/EmpresaForm'">Agregar Empresa</button>
+                </div>
+                <div id="tblCandidato" class="col-6 table-responsive mt-4">
+                    <table class="table table-bordered table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col" colspan="12">Lista de Empresas</th>
+                            </tr>
+                            <tr>
+                                <th scope="col">IdEmpresa</th>
+                                <th scope="col">Nombre</th>
+                                <th scope="col">Editar</th>
+                                <th scope="col">Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tboCandidato">
+                            @foreach (ML.Empresa empresa in Model.empresas)
+                            {
+                                <tr class="table-light">
+                                    @Html.Raw("<input type='hidden' class='hdnLatitud' value='" + empresa.Latitud + "' />")
+                                    @Html.Raw("<input type='hidden' class='hdnLongitud' value='" + empresa.Longitud + "' />")
+                                    <td>@empresa.IdEmpresa</td>
+                                    <td class="tdNombre">@empresa.Nombre</td>
+                                    <td>
+                                        <button type="button" class="btn btn-link" onclick="location.href='/Empresa/EmpresaForm?IdEmpresa=@empresa.IdEmpresa'">
+                                            <i class="bi bi-files" style="font-size: 2rem; color: darkblue"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-link" onclick="location.href='/Empresa/Confirmacion?IdEmpresa=@empresa.IdEmpresa'">
+                                            <i class="bi bi-trash" style="font-size: 2rem; color: red"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-6 mt-4" id="map"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })
+        ({ key: "AIzaSyCSKBDdPPlfca_zTwyxKiicRQn1qfgRjLw", v: "weekly" });
+</script>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+<script>
+    
+    let map;
+    let markers = [];
+    var latitud = []
+    var longitud = []
+    var nombre = []
+    
+    async function initMap() {
+            
+        
+        var iposition = { lat: 19.430398338130196, lng: -99.16165246336072 }
+        const { Map, InfoWindow } = await google.maps.importLibrary("maps");
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        const infoWindow = new InfoWindow();
+
+        map = new Map(document.getElementById("map"), {
+            zoom: 16,
+            center: iposition,
+            mapId: "DEMO_MAP_ID",
+        });
+
+        $(".tdNombre").each(function (index) {
+            const n = $(this).text();
+            nombre.push(n);
+        });
+        $(".hdnLatitud").each(function (index) {
+            const l = $(this).val();
+            latitud.push(l);
+        });
+        $(".hdnLongitud").each(function (index) {
+            const lo = $(this).val();
+            longitud.push(lo);
+            var position = { lat: parseFloat(latitud[index]), lng: parseFloat(longitud[index]) };
+            addMarker(position, map, nombre[index], latitud[index], longitud[index]);
+        });
+
+        
+        function addMarker(location, map, title, latitud, longitud) {
+            const marker = new AdvancedMarkerElement({
+                map: map,
+                position: location,
+                title: title,
+                gmpClickable: true
+            });     
+            marker.addListener("click", ({ domEvent, latLng }) => {
+                const { target } = domEvent;
+
+                infoWindow.close();
+                infoWindow.setContent(
+                    "Nombre: " + title + "<br>" +
+                    "Latitud: " + latitud + "<br>" +
+                    "Longitud: " + longitud
+                );
+                infoWindow.open(marker.map, marker);
+            });
+        }
+    }
+    initMap();
+</script>

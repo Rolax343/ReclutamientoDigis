@@ -1,0 +1,224 @@
+﻿@model ML.Candidato
+@{
+    ViewBag.Title = "Form";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4 text-center">Cita</h2>
+<style>
+    .valido {
+        border-color: green;
+    }
+
+    .invalido {
+        border-color: red;
+    }
+
+    .parpadeo {
+        transition: background-color 0.5s ease;
+    }
+</style>
+@using (Html.BeginForm("CitaForm", "Cita", FormMethod.Post, new { enctype = "multipart/form-data", onsubmit = "" }))
+{
+    <div class="container">
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center gap-3">
+                <button type="button" class="btn btn-success my-3" style="width: 20%;" onclick="CambiarVistaPresencial()">Entrevista Presencial</button>
+                <button type="button" class="btn btn-success my-3" style="width: 20%;" onclick="CambiarVistaOnline()">Entrevista Online</button>
+            </div>
+        </div>
+
+        <div class="row" id="divCita" style="display: none">
+            <div class="d-flex">
+                <div class="col-4">
+                    <div class="card mt-4" style="width: 100%;">
+                        <img src="data:image/*;base64,@Model.FotoBase64" alt="Sin Foto" class="card-img-top" style="max-width: 100px; margin: auto;" alt="Imagen de contacto">
+                        <div class="card-body">
+                            <h5 class="card-title">@Model.Nombre @Model.ApellidoPaterno @Model.ApellidoMaterno</h5>
+                            <p class="card-text"><strong>Correo:</strong> @Model.Correo</p>
+                            <p class="card-text"><strong>Teléfono:</strong> @Model.Telefono</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-8">
+                    <div class="row">
+                        @Html.HiddenFor(model => model.IdCandidato)
+                        @Html.HiddenFor(model => model.Nombre)
+                        @Html.HiddenFor(model => model.Cita.IdCita, new {@id="hdnIdCita"} )
+                        <div class="col-12 mt-4">
+                            @Html.LabelFor(model => model.Cita.FechaHora, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.Cita.FechaHora, new { @id = "TxtFechaHora", @class = "form-control mx-auto parpadeo" })
+                            <div class="text-danger" id="errorFechaHoraVacio" style="display: none; font-size: 0.9em;">La direccion no puede encontrarse vacia</div>
+                        </div>
+                        <div class="col-12 mt-4" style="display:none" id="iptUrl">
+                                @Html.LabelFor(model => model.Cita.Url, new { @class = "form-label" })
+                                @Html.TextBoxFor(model => model.Cita.Url, new { @id="txtUrl", @class = "form-control mx-auto parpadeo", placeholder = "Inserta la URL", @onkeypress = "validarTexto(event, this, 'errorUrl', /^[\\S]+$/);validarLongitud(event, this, 'errorUrlLongitud', '500');" })
+                                <div class="text-danger" id="errorUrl" style="display: none; font-size: 0.9em;">La Url no puede contener espacios</div>
+                                <div class="text-danger" id="errorUrlLongitud" style="display: none; font-size: 0.9em;">La Url no puede exceder los 500 caracteres</div>
+                                <div class="text-danger" id="errorUrlVacio" style="display: none; font-size: 0.9em;">La Url no puede encontrarse vacia</div>
+                        </div>
+                        <div class="col-12 mt-4" style="display:none" id="iptPiso">
+                            @Html.LabelFor(model => model.Cita.Piso.IdPiso, new { @class = "form-label" })
+                            @Html.DropDownListFor(model => model.Cita.Piso.IdPiso, new SelectList(Model.Cita.Piso.Pisos, "IdPiso", "Nombre"), "Selecciona una Cita", new { @id = "txtPiso", @class = "form-select mx-auto" })
+                        </div>
+                        <div class="col-12 mt-4">
+                            @Html.LabelFor(model => model.Cita.EstatusCita.IdEstatusCita, new { @class = "form-label" })
+                            @Html.DropDownListFor(model => model.Cita.EstatusCita.IdEstatusCita, new SelectList(Model.Cita.EstatusCita.EstatusCitas, "IdEstatusCita", "Nombre"), "Selecciona una Cita", new { @class = "form-select mx-auto" })
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-6 text-center">
+                            <button id="BtnEnviarRegistro" type="submit" class="btn btn-success" style="width: 80%;">Guardar</button>
+                        </div>
+                        <div class="col-6 text-center">
+                            @Html.ActionLink("Cancelar", "CandidatoCita", "Candidato", null, new { @class = "btn btn-danger", @style = "width: 80%;" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.13.1/jquery.timepicker.min.js"></script>
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        var url = $('#txtUrl').val()
+        var idCita = $('#hdnIdCita').val()
+        if (idCita =! null && idCita != 0) {
+            if (url == '' || url == null) {
+                CambiarVistaPresencial();
+            } else {
+                CambiarVistaOnline();
+            }
+        }
+        flatpickr("#TxtFechaHora", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i:S",  
+            enableSeconds: true, 
+            noCalendar: false, 
+            minuteIncrement: 1, 
+        });
+    });
+
+    function validarTexto(event, input, div, regex) {
+        var textoRegex = regex
+        var letra = event.key
+        var error = document.getElementById(div)
+        var error2 = document.getElementById('error' + input.name + 'Vacio')
+        if (textoRegex.test(letra)) {
+            input.classList.add('valido');
+            input.classList.remove('invalido');
+            error.style.display = 'none'
+            error2.style.display = 'none'
+
+        } else {
+            event.preventDefault();
+            input.style.backgroundColor = 'lightcoral';
+
+            setTimeout(() => {
+                input.style.backgroundColor = '';
+            }, 500);
+            error.style.display = 'block'
+            setTimeout(() => {
+                error.style.display = 'none';
+            }, 5000);
+
+        }
+
+    }
+    function validarLongitud(event, input, div, longitud) {
+        var error = document.getElementById(div)
+        if (input.value.length >= longitud) {
+            event.preventDefault();
+            error.style.display = 'block'
+            input.style.backgroundColor = 'lightcoral';
+
+
+            setTimeout(() => {
+                input.style.backgroundColor = '';
+            }, 500);
+
+            setTimeout(() => {
+                error.style.display = 'none';
+            }, 5000);
+
+        }
+    }
+
+    function validarCampo(input, div, regex) {
+        var textoRegex = regex
+        var texto = input.value
+        var error = document.getElementById(div)
+
+        if (textoRegex.test(texto)) {
+            input.classList.add('valido');
+            input.classList.remove('invalido');
+            error.style.display = 'none'
+
+
+        } else {
+            input.style.backgroundColor = 'lightcoral';
+            setTimeout(() => {
+                input.style.backgroundColor = '';
+            }, 500);
+            error.style.display = 'block'
+            input.classList.add('invalido');
+            input.classList.remove('valido');
+
+        }
+
+    }
+    function ComprobarFormato() {
+        var inputs = [];
+        var url = $('#txtUrl')
+        inputs.push(document.getElementById('@Html.IdFor(model => model.Cita.FechaHora)'));
+        inputs.push(document.getElementById('@Html.IdFor(model => model.Cita.Url)'));
+        if (url == '') {
+            inputs.push(document.getElementById('@Html.IdFor(model => model.Cita.Piso.IdPiso)'));
+        }
+        inputs.push(document.getElementById('@Html.IdFor(model => model.Cita.EstatusCita.IdEstatusCita)'));
+        var validacion = true;
+        for (i = 0; i < inputs.length; i++) {
+            if (inputs[i].classList.contains('invalido')) {
+                validacion = false;
+            }
+            if (inputs[i].value == '') {
+                var error = document.getElementById('error' + inputs[i].name + 'Vacio')
+                error.style.display = 'block'
+                inputs[i].classList.add('invalido');
+                inputs[i].classList.remove('valido');
+                validacion = false;
+            }
+        }
+        if (validacion) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    function CambiarVistaPresencial() {
+        $('#divCita').css('display', 'block');
+        $('#iptPiso').css('display', 'block');
+        $('#txtUrl').val('');
+        $('#txtUrl').removeClass('valido')
+        $('#txtUrl').removeClass('invalido')
+        $('#iptUrl').css('display', 'none'); 
+    }
+
+    function CambiarVistaOnline() {
+        $('#divCita').css('display', 'block');
+        $('#iptUrl').css('display', 'block');
+        $('#txtPiso').val('');  
+        $('#iptPiso').css('display', 'none');
+    }
+</script>
